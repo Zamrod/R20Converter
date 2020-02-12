@@ -391,8 +391,8 @@ function onReaderLoad(event){
       blobNotes+=blobGmNotes;
     }
     
-    blobNotes = fixR20URLs(blobNotes);
-    
+      blobNotes = fixR20URLs(blobNotes);
+      blobNotes = splitPages(blobNotes);
     if (avatar!=''){
       blobNotes+='<img src="'+avatar+'"/>';
     }
@@ -503,6 +503,57 @@ function fixR20URLs(blobString){
 		.replace(/https:\/\/roll20\.net\/compendium\/dnd5e\//gm, "/monster/");
   return blobString;  
 }
+
+function splitPages(blobString) {
+    var matchPattern = /(?:<(h3|h4).*?>)(?:<span.*?>)?(.*?)(?:<\/span>)?(?:<\/(\1)>)/;
+    var matchR20URL = blobString.match(matchPattern);
+
+    //while (matchR20URL) 
+    blobMatch = matchPattern.exec(blobString);
+    if (blobMatch) {
+        var cursor = blobMatch.index;
+        index = blobString.indexOf(blobMatch[1], cursor);
+        console.log(index);
+        //for (var b = 0; b < blobMatch.length; b++) {
+        console.log(blobMatch[2]);
+        console.log(blobString.substr(0,index-1))
+        }
+                //console.log('FullMatch:' + fullMatch);
+                //console.log('urlPrefix:' + urlPrefix);
+                //console.log('linkType:' + linkType);
+                //console.log('id:' + id);
+            //});
+    //}
+        /*
+        if (avatar != '') {
+            blobNotes += '<img src="' + avatar + '"/>';
+        }
+        var parentKey = '';
+        for (var j = 0; j < json.journal.length; j++) {
+            if (json.journal[j].id == pageId) {
+                parentKey = json.journal[j].path[json.journal[j].path.length - 1];
+            }
+        }
+
+        moduleText += ' <page parent="' + groups[parentKey].id + '">' + "\n";
+        moduleText += '  <name>' + encodeXML(pageName) + '</name>' + "\n";
+        moduleText += '  <slug>' + encodeXML(pageName.toLowerCase().replace(/ /g, '-')) + '</slug>' + "\n";
+        moduleText += '  <content sourceId="h' + h + '">' + encodeXML(blobNotes) + '</content>' + "\n";
+        moduleText += ' </page>' + "\n";
+        matchR20URL = blobString.match(matchPattern);
+    }
+
+    blobString = blobString.replace(/#content/gm, "")
+        .replace(/https:\/\/(app|journal)\.roll20\.net\/compendium\/dnd5e\/Items:/gm, "/item/")
+        .replace(/https:\/\/(app|journal)\.roll20\.net\/compendium\/monstermanual\/Monsters:/gm, "/monster/")
+        .replace(/https:\/\/(app|journal)\.roll20\.net\/compendium\/dnd5e\/Spells:/gm, "/spell/")
+        .replace(/https:\/\/roll20\.net\/compendium\/dnd5e\/Spells:/gm, "/spell/")
+        .replace(/https:\/\/(app|journal)\.roll20\.net\/compendium\/dnd5e\//gm, "/monster/")
+        .replace(/https:\/\/roll20\.net\/compendium\/dnd5e\//gm, "/monster/");
+        */
+    return blobString;
+}
+
 
 function imageError(){
   console.log('Error with image '+this.id+' replacing with blank');
