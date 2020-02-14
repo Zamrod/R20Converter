@@ -1,4 +1,4 @@
-/*
+﻿/*
   Data structure notes
   --------------------
   Map:
@@ -85,7 +85,7 @@ function onReaderLoad(event){
   
   var moduleName = fileName.replace(/.json/,'');
   module.value = ' <name>'+encodeXML(moduleName)+'</name>'+"\n";
-  module.value += ' <slug>'+encodeXML(moduleName.toLowerCase().replace(/ /g,'-'))+'</slug>'+"\n";
+    module.value += ' <slug>' + encodeXML(slugify(moduleName.toLowerCase()))+'</slug>'+"\n";
   module.value += ' <category>adventure</category>'+"\n";
   module.value += ' <author>Roll 20</author>'+"\n";
   
@@ -373,7 +373,7 @@ function onReaderLoad(event){
       moduleText += ' <group id="'+groups[key].id+'" parent="'+groups[groups[key].parent].id+'">'+"\n";
     }
     moduleText += '  <name>'+encodeXML(key)+'</name>'+"\n";
-    moduleText += '  <slug>'+encodeXML(key.toLowerCase().replace(/ /g,'-'))+'</slug>'+"\n";
+      moduleText += '  <slug>' + encodeXML(slugify(key.toLowerCase()))+'</slug>'+"\n";
     moduleText += ' </group>'+"\n";   
   }
   
@@ -384,6 +384,7 @@ function onReaderLoad(event){
     var avatar = json.handouts[h].attributes.avatar;
     var blobNotes = unescapeBlob(json.handouts[h].blobNotes);
     var blobGmNotes = unescapeBlob(json.handouts[h].blobGmNotes);
+    var blobPages = [];
     if (blobGmNotes!=''){
       if (blobNotes!=''){
         blobNotes+='<hr/>';
@@ -392,7 +393,7 @@ function onReaderLoad(event){
     }
     
       blobNotes = fixR20URLs(blobNotes);
-      blobNotes = splitPages(blobNotes);
+      blobPages = splitPages(blobNotes, pageName);
     if (avatar!=''){
       blobNotes+='<img src="'+avatar+'"/>';
     }
@@ -402,12 +403,21 @@ function onReaderLoad(event){
         parentKey = json.journal[j].path[json.journal[j].path.length-1];
       }
     }
-    
-    moduleText += ' <page parent="'+groups[parentKey].id+'">'+"\n";
-    moduleText += '  <name>'+encodeXML(pageName)+'</name>'+"\n";
-    moduleText += '  <slug>'+encodeXML(pageName.toLowerCase().replace(/ /g,'-'))+'</slug>'+"\n";
-    moduleText += '  <content sourceId="h'+h+'">'+encodeXML(blobNotes)+'</content>'+"\n";
-    moduleText += ' </page>'+"\n";
+      for (var p = 0; p < blobPages.length; p++) {
+          moduleText += ' <page parent="' + groups[parentKey].id + '">' + "\n";
+          if (blobPages[p].name) {
+
+              moduleText += '  <name>' + encodeXML(blobPages[p].name) + '</name>' + "\n";
+              //console.log('Page Name:' + blobPages[p].name);
+              moduleText += '  <slug>' + encodeXML(slugify(blobPages[p].name.toLowerCase())) + '</slug>' + "\n";
+          }
+          else {
+              moduleText += '  <name>' + encodeXML(pageName) + '</name>' + "\n";
+              moduleText += '  <slug>' + encodeXML(pageName.toLowerCase()) + '</slug>' + "\n";
+          }
+          moduleText += '  <content sourceId="h' + h + '">' + encodeXML(blobPages[p].text) + '</content>' + "\n";
+          moduleText += ' </page>' + "\n";
+      }
   }
   
   //Characters
@@ -438,7 +448,7 @@ function onReaderLoad(event){
     
     moduleText += ' <page parent="'+groups[parentKey].id+'">'+"\n"; 
     moduleText += '  <name>'+encodeXML(charName)+'</name>'+"\n";
-    moduleText += '  <slug>'+encodeXML(charName.toLowerCase().replace(/ /g,'-'))+'</slug>'+"\n";
+      moduleText += '  <slug>' + encodeXML(slugify(charName.toLowerCase()))+'</slug>'+"\n";
     moduleText += '  <content sourceId="c'+c+'">'+encodeXML(blobBio)+'</content>'+"\n";
     moduleText += ' </page>'+"\n";
   }
@@ -483,7 +493,7 @@ function fixR20URLs(blobString){
         for (var d=0;d<searchArray.length;d++) {
           if (searchArray[d].attributes.id) {
             if (searchArray[d].attributes.id == id) {
-              return 'https://encounter.plus' + replacePrefix + searchArray[d].attributes.name.toLowerCase().replace(/ /gm,'-')
+                return 'https://encounter.plus' + replacePrefix + slugify(searchArray[d].attributes.name.toLowerCase())
             }
           } else {
             console.log('%cNo url id Match for '+linkType +' - '+id,'background:#ff06');
@@ -504,56 +514,70 @@ function fixR20URLs(blobString){
   return blobString;  
 }
 
-function splitPages(blobString) {
-    var matchPattern = /(?:<(h3|h4).*?>)(?:<span.*?>)?(.*?)(?:<\/span>)?(?:<\/(\1)>)/;
+function splitPages(blobString, Title) {
+    var matchPattern = /(?:<(h3|h4).*?>)(?:<span.*?>)?(.+?)(?:<\/span>)?(<\/(\1)>)/;
     var matchR20URL = blobString.match(matchPattern);
+    var Page = {};
+    var Pages = [];
 
-    //while (matchR20URL) 
-    blobMatch = matchPattern.exec(blobString);
+    //while (matchR20URL)
+    var parentTitle = Title
+    console.log("Starting Page entry:" + Title);
+    blobMatch = blobString.substr(1, blobString.length).match(matchPattern);
     if (blobMatch) {
-        var cursor = blobMatch.index;
-        index = blobString.indexOf(blobMatch[1], cursor);
-        console.log(index);
-        //for (var b = 0; b < blobMatch.length; b++) {
-        console.log(blobMatch[2]);
-        console.log(blobString.substr(0,index-1))
-        }
-                //console.log('FullMatch:' + fullMatch);
-                //console.log('urlPrefix:' + urlPrefix);
-                //console.log('linkType:' + linkType);
-                //console.log('id:' + id);
-            //});
-    //}
-        /*
-        if (avatar != '') {
-            blobNotes += '<img src="' + avatar + '"/>';
-        }
-        var parentKey = '';
-        for (var j = 0; j < json.journal.length; j++) {
-            if (json.journal[j].id == pageId) {
-                parentKey = json.journal[j].path[json.journal[j].path.length - 1];
+        while (blobMatch) {
+            Page = {};
+            var cursor = blobMatch.index;
+            console.log("Title 1: " + Title);
+            index = blobString.indexOf(blobMatch[0], cursor);
+            //console.log(index);
+            //for (var b = 0; b < blobMatch.length; b++) {
+            //console.log(blobMatch[2]);
+            Page.name = Title;
+            //console.log("Name: " + Page.name);
+            Page.text = blobString.substr(0, index);
+            console.log("Original Name: " + parentTitle + " Name: " + Page.name + " " + Page.text);
+            Pages.push(Page);
+            Title = blobMatch[2];
+            Title = Title.replace(/<[^>]*>?/gm, '');
+            //console.log(blobString.substr(0, index-1));
+            /*
+            if ((index + blobMatch[0].length) >= blobString.length) {
+                console.log("Title 2: " + Title);
+                blobString = blobString.substr(index, blobString.length);
+                Page.text = blobString;
+                Page.name = Title;
+                Pages.push(Page);
             }
+            */
+            blobString = blobString.substr(index, blobString.length);
+            //blobMatch = matchPattern.match(blobString.substr(1, blobString.length));
+            blobMatch = blobString.substr(1, blobString.length).match(matchPattern);
         }
-
-        moduleText += ' <page parent="' + groups[parentKey].id + '">' + "\n";
-        moduleText += '  <name>' + encodeXML(pageName) + '</name>' + "\n";
-        moduleText += '  <slug>' + encodeXML(pageName.toLowerCase().replace(/ /g, '-')) + '</slug>' + "\n";
-        moduleText += '  <content sourceId="h' + h + '">' + encodeXML(blobNotes) + '</content>' + "\n";
-        moduleText += ' </page>' + "\n";
-        matchR20URL = blobString.match(matchPattern);
     }
-
-    blobString = blobString.replace(/#content/gm, "")
-        .replace(/https:\/\/(app|journal)\.roll20\.net\/compendium\/dnd5e\/Items:/gm, "/item/")
-        .replace(/https:\/\/(app|journal)\.roll20\.net\/compendium\/monstermanual\/Monsters:/gm, "/monster/")
-        .replace(/https:\/\/(app|journal)\.roll20\.net\/compendium\/dnd5e\/Spells:/gm, "/spell/")
-        .replace(/https:\/\/roll20\.net\/compendium\/dnd5e\/Spells:/gm, "/spell/")
-        .replace(/https:\/\/(app|journal)\.roll20\.net\/compendium\/dnd5e\//gm, "/monster/")
-        .replace(/https:\/\/roll20\.net\/compendium\/dnd5e\//gm, "/monster/");
-        */
-    return blobString;
+    else {
+    Page.name = Title;
+    Page.text = blobString;
+    Pages.push(Page);
+    }
+    return Pages;
 }
 
+function slugify(string) {
+    const a = 'àáâäæãåāăąçćčđďèéêëēėęěğǵḧîïíīįìłḿñńǹňôöòóœøōõőṕŕřßśšşșťțûüùúūǘůűųẃẍÿýžźż·/_,:;'
+    const b = 'aaaaaaaaaacccddeeeeeeeegghiiiiiilmnnnnoooooooooprrsssssttuuuuuuuuuwxyyzzz------'
+    const p = new RegExp(a.split('').join('|'), 'g')
+
+    return string.toString().toLowerCase()
+        .replace(/\s+/g, '-') // Replace spaces with -
+        .replace(p, c => b.charAt(a.indexOf(c))) // Replace special characters
+        .replace(/\'/g, '-') // Replace apostrophe
+        .replace(/&/g, '-') // Replace & with '-'
+        .replace(/[^\w\-]+/g, '') // Remove all non-word characters
+        .replace(/\-\-+/g, '-') // Replace multiple - with single -
+        .replace(/^-+/, '') // Trim - from start of text
+        .replace(/-+$/, '') // Trim - from end of text
+}
 
 function imageError(){
   console.log('Error with image '+this.id+' replacing with blank');
