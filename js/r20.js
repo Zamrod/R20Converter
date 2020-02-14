@@ -248,19 +248,19 @@ function onReaderLoad(event){
             
             moduleText += '   <locked>YES</locked>'+"\n";
             moduleText += '   <asset>';
-              moduleText += '<name>'+encodeXML(title)+'</name>';
-              moduleText += '<type>image</type>';
-              moduleText += '<resource>'+encodeXML(id)+'.'+getExtn(tileSrc)+'</resource>';
+            moduleText += '<name>'+encodeXML(title)+'</name>';
+            moduleText += '<type>image</type>';
+            moduleText += '<resource>'+encodeXML(id)+'.'+getExtn(tileSrc)+'</resource>';
             moduleText += '</asset>'+"\n";
-            if (hasLight){
-              moduleText += '   <light>';
+              if (hasLight) {
+                moduleText += '   <light>';
                 moduleText += '<enabled>YES</enabled>';
                 moduleText += '<radiusMin>'+Math.round(json.maps[m].graphics[g].light_dimradius)+'</radiusMin>';
                 moduleText += '<radiusMax>'+Math.round(json.maps[m].graphics[g].light_radius)+'</radiusMax>';
                 moduleText += '<alwaysVisible>NO</alwaysVisible>';
                 moduleText += '<color>#ffffff</color>';
                 moduleText += '<opacity>0.5</opacity>';
-              moduleText += '</light>'+"\n";
+                moduleText += '</light>'+"\n";
             }
             moduleText += '  </tile>'+"\n";
           }
@@ -373,7 +373,7 @@ function onReaderLoad(event){
       moduleText += ' <group id="'+groups[key].id+'" parent="'+groups[groups[key].parent].id+'">'+"\n";
     }
     moduleText += '  <name>'+encodeXML(key)+'</name>'+"\n";
-      moduleText += '  <slug>' + encodeXML(slugify(key.toLowerCase()))+'</slug>'+"\n";
+    moduleText += '  <slug>' + encodeXML(slugify(key.toLowerCase()))+'</slug>'+"\n";
     moduleText += ' </group>'+"\n";   
   }
   
@@ -393,7 +393,6 @@ function onReaderLoad(event){
     }
     
       blobNotes = fixR20URLs(blobNotes);
-      blobPages = splitPages(blobNotes, pageName);
     if (avatar!=''){
       blobNotes+='<img src="'+avatar+'"/>';
     }
@@ -402,19 +401,14 @@ function onReaderLoad(event){
       if (json.journal[j].id==pageId){
         parentKey = json.journal[j].path[json.journal[j].path.length-1];
       }
-    }
+      }
+      console.log('Parent Key:' + parentKey);
+      blobPages = splitPages(blobNotes, pageName, parentKey);
       for (var p = 0; p < blobPages.length; p++) {
           moduleText += ' <page parent="' + groups[parentKey].id + '">' + "\n";
-          if (blobPages[p].name) {
-
-              moduleText += '  <name>' + encodeXML(blobPages[p].name) + '</name>' + "\n";
-              //console.log('Page Name:' + blobPages[p].name);
-              moduleText += '  <slug>' + encodeXML(slugify(blobPages[p].name.toLowerCase())) + '</slug>' + "\n";
-          }
-          else {
-              moduleText += '  <name>' + encodeXML(pageName) + '</name>' + "\n";
-              moduleText += '  <slug>' + encodeXML(pageName.toLowerCase()) + '</slug>' + "\n";
-          }
+          moduleText += '  <name>' + encodeXML(blobPages[p].name) + '</name>' + "\n";
+          //console.log('Page Name:' + blobPages[p].name);
+          moduleText += '  <slug>' + encodeXML(slugify(blobPages[p].name.toLowerCase())) + '</slug>' + "\n";
           moduleText += '  <content sourceId="h' + h + '">' + encodeXML(blobPages[p].text) + '</content>' + "\n";
           moduleText += ' </page>' + "\n";
       }
@@ -448,7 +442,7 @@ function onReaderLoad(event){
     
     moduleText += ' <page parent="'+groups[parentKey].id+'">'+"\n"; 
     moduleText += '  <name>'+encodeXML(charName)+'</name>'+"\n";
-      moduleText += '  <slug>' + encodeXML(slugify(charName.toLowerCase()))+'</slug>'+"\n";
+    moduleText += '  <slug>' + encodeXML(slugify(charName.toLowerCase()))+'</slug>'+"\n";
     moduleText += '  <content sourceId="c'+c+'">'+encodeXML(blobBio)+'</content>'+"\n";
     moduleText += ' </page>'+"\n";
   }
@@ -514,51 +508,58 @@ function fixR20URLs(blobString){
   return blobString;  
 }
 
-function splitPages(blobString, Title) {
+function splitPages(blobString, Title, parentKey) {
     var matchPattern = /(?:<(h3|h4).*?>)(?:<span.*?>)?(.+?)(?:<\/span>)?(<\/(\1)>)/;
-    var matchR20URL = blobString.match(matchPattern);
+    var roomPattern = /^[A-Za-z][0-9]+\./;
     var Page = {};
     var Pages = [];
-
-    //while (matchR20URL)
     var parentTitle = Title
+    Page.name = Title;
+    var blobMatch = blobString.substr(1, blobString.length).match(matchPattern);
     console.log("Starting Page entry:" + Title);
-    blobMatch = blobString.substr(1, blobString.length).match(matchPattern);
     if (blobMatch) {
         while (blobMatch) {
-            Page = {};
             var cursor = blobMatch.index;
-            console.log("Title 1: " + Title);
             index = blobString.indexOf(blobMatch[0], cursor);
-            //console.log(index);
-            //for (var b = 0; b < blobMatch.length; b++) {
-            //console.log(blobMatch[2]);
-            Page.name = Title;
-            //console.log("Name: " + Page.name);
-            Page.text = blobString.substr(0, index);
-            console.log("Original Name: " + parentTitle + " Name: " + Page.name + " " + Page.text);
-            Pages.push(Page);
-            Title = blobMatch[2];
-            Title = Title.replace(/<[^>]*>?/gm, '');
-            //console.log(blobString.substr(0, index-1));
-            /*
-            if ((index + blobMatch[0].length) >= blobString.length) {
-                console.log("Title 2: " + Title);
-                blobString = blobString.substr(index, blobString.length);
-                Page.text = blobString;
+                //console.log(index);
+                //for (var b = 0; b < blobMatch.length; b++) {
+                //console.log(blobMatch[2]);
+                //console.log("Name: " + Page.name);
+            Page.text = Page.text + blobString.substr(0, index);
+            if (blobMatch[2].match(roomPattern)) {
+                Title = Title.replace(/<[^>]*>?/gm, '');
+                console.log("Title 1: " + Title);
                 Page.name = Title;
+                console.log("Original Name: " + parentTitle + " Name: " + Page.name + " " + Page.text);
                 Pages.push(Page);
+                Page = {};
+                Page.text = ""
+                Title = parentTitle + ": " + blobMatch[2];
             }
-            */
-            blobString = blobString.substr(index, blobString.length);
-            //blobMatch = matchPattern.match(blobString.substr(1, blobString.length));
-            blobMatch = blobString.substr(1, blobString.length).match(matchPattern);
+                //console.log(blobString.substr(0, index-1));
+                /*
+                if ((index + blobMatch[0].length) >= blobString.length) {
+                    console.log("Title 2: " + Title);
+                    blobString = blobString.substr(index, blobString.length);
+                    Page.text = blobString;
+                    Page.name = Title;
+                    Pages.push(Page);
+                }
+                */
+                blobString = blobString.substr(index, blobString.length);
+                //blobMatch = matchPattern.match(blobString.substr(1, blobString.length));
+                blobMatch = blobString.substr(1, blobString.length).match(matchPattern);
         }
+        Page.name = Title;
+        Page.text = Page.text + blobString;
+        console.log("Original Name: " + parentTitle + " Name: " + Page.name + " " + Page.text);
+        Pages.push(Page);
     }
     else {
-    Page.name = Title;
-    Page.text = blobString;
-    Pages.push(Page);
+        Page.name = Title;
+        Page.text = blobString;
+        console.log("Original Name: " + parentTitle + " Name: " + Page.name + " " + Page.text);
+        Pages.push(Page);
     }
     return Pages;
 }
