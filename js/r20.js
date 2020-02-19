@@ -11,8 +11,9 @@
   * json.maps[m].graphics[g].represents!=''
 
 */
+//const uuidv4 = require('uuid/v4');
 
-$(function() {
+$(function () {
   $("input:file").change(function (event){
     var reader = new FileReader();
     reader.onload = onReaderLoad;
@@ -85,7 +86,7 @@ function onReaderLoad(event){
   
   var moduleName = fileName.replace(/.json/,'');
   module.value = ' <name>'+encodeXML(moduleName)+'</name>'+"\n";
-    module.value += ' <slug>' + encodeXML(slugify(moduleName.toLowerCase()))+'</slug>'+"\n";
+    module.value += ' <slug>' + encodeXML(slugify(moduleName))+'</slug>'+"\n";
   module.value += ' <category>adventure</category>'+"\n";
   module.value += ' <author>Roll 20</author>'+"\n";
   
@@ -373,7 +374,7 @@ function onReaderLoad(event){
       moduleText += ' <group id="'+groups[key].id+'" parent="'+groups[groups[key].parent].id+'">'+"\n";
     }
     moduleText += '  <name>'+encodeXML(key)+'</name>'+"\n";
-    moduleText += '  <slug>' + encodeXML(slugify(key.toLowerCase()))+'</slug>'+"\n";
+    moduleText += '  <slug>' + encodeXML(slugify(key))+'</slug>'+"\n";
     moduleText += ' </group>'+"\n";   
   }
   
@@ -396,19 +397,22 @@ function onReaderLoad(event){
     if (avatar!=''){
       blobNotes+='<img src="'+avatar+'"/>';
     }
-    var parentKey = '';
+      var parentKey = '';
     for (var j=0;j<json.journal.length;j++){
       if (json.journal[j].id==pageId){
-        parentKey = json.journal[j].path[json.journal[j].path.length-1];
+          parentKey = json.journal[j].path[json.journal[j].path.length - 1];
+          currentKey = createUUID();
       }
       }
       console.log('Parent Key:' + parentKey);
       blobPages = splitPages(blobNotes, pageName, parentKey);
       for (var p = 0; p < blobPages.length; p++) {
-          moduleText += ' <page parent="' + groups[parentKey].id + '">' + "\n";
+          if (p == 0) {
+              moduleText += ' <page id="' + currentKey + '" parent="' + groups[parentKey].id + '">' + "\n"; }
+          else { moduleText += ' <page parent="' + currentKey + '">' + "\n"; }
           moduleText += '  <name>' + encodeXML(blobPages[p].name) + '</name>' + "\n";
-          //console.log('Page Name:' + blobPages[p].name);
-          moduleText += '  <slug>' + encodeXML(slugify(blobPages[p].name.toLowerCase())) + '</slug>' + "\n";
+          console.log('Page Name:' + blobPages[p].name);
+          moduleText += '  <slug>' + encodeXML(slugify(blobPages[p].name)) + '</slug>' + "\n";
           moduleText += '  <content sourceId="h' + h + '">' + encodeXML(blobPages[p].text) + '</content>' + "\n";
           moduleText += ' </page>' + "\n";
       }
@@ -442,7 +446,7 @@ function onReaderLoad(event){
     
     moduleText += ' <page parent="'+groups[parentKey].id+'">'+"\n"; 
     moduleText += '  <name>'+encodeXML(charName)+'</name>'+"\n";
-    moduleText += '  <slug>' + encodeXML(slugify(charName.toLowerCase()))+'</slug>'+"\n";
+    moduleText += '  <slug>' + encodeXML(slugify(charName))+'</slug>'+"\n";
     moduleText += '  <content sourceId="c'+c+'">'+encodeXML(blobBio)+'</content>'+"\n";
     moduleText += ' </page>'+"\n";
   }
@@ -487,7 +491,7 @@ function fixR20URLs(blobString){
         for (var d=0;d<searchArray.length;d++) {
           if (searchArray[d].attributes.id) {
             if (searchArray[d].attributes.id == id) {
-                return 'https://encounter.plus' + replacePrefix + slugify(searchArray[d].attributes.name.toLowerCase())
+                return 'https://encounter.plus' + replacePrefix + slugify(searchArray[d].attributes.name)
             }
           } else {
             console.log('%cNo url id Match for '+linkType +' - '+id,'background:#ff06');
@@ -515,6 +519,7 @@ function splitPages(blobString, Title, parentKey) {
     var Pages = [];
     var parentTitle = Title
     Page.name = Title;
+    Page.text = "";
     var blobMatch = blobString.substr(1, blobString.length).match(matchPattern);
     console.log("Starting Page entry:" + Title);
     if (blobMatch) {
@@ -525,16 +530,30 @@ function splitPages(blobString, Title, parentKey) {
                 //for (var b = 0; b < blobMatch.length; b++) {
                 //console.log(blobMatch[2]);
                 //console.log("Name: " + Page.name);
-            Page.text = Page.text + blobString.substr(0, index);
+            Page.text = Page.text + blobString.substr(0, index) + '<p><a href="' + 'https://encounter.plus/page/' + slugify(blobMatch[2].replace(/<[^>]*>?/gm, '')) + '">' + blobMatch[2].replace(/<[^>]*>?/gm, '') + '</a></p>'
             if (blobMatch[2].match(roomPattern)) {
-                Title = Title.replace(/<[^>]*>?/gm, '');
                 console.log("Title 1: " + Title);
                 Page.name = Title;
                 console.log("Original Name: " + parentTitle + " Name: " + Page.name + " " + Page.text);
                 Pages.push(Page);
                 Page = {};
                 Page.text = ""
-                Title = parentTitle + ": " + blobMatch[2];
+                Title = blobMatch[2].replace(/<[^>]*>?/gm, '');;
+                //index = blobString.indexOf(blobMatch[0], cursor);
+                //H3Match = blobString.substr(1, blobString.length).match(matchH3);
+                //Title = parentTitle + ": " + blobMatch[2];
+            }
+            else {
+                if (blobMatch[1] == 'h3') {
+                    console.log("Title 1: " + Title);
+                    Page.name = Title;
+                    Page.subheading = true;
+                    console.log("Original Name: " + parentTitle + " Name: " + Page.name + " " + Page.text);
+                    Pages.push(Page);
+                    Page = {};
+                    Page.text = ""
+                    Title = blobMatch[2].replace(/<[^>]*>?/gm, '');;
+                }
             }
                 //console.log(blobString.substr(0, index-1));
                 /*
