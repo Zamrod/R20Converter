@@ -530,8 +530,9 @@ function splitPages(blobString, Title, parentKey) {
                 //for (var b = 0; b < blobMatch.length; b++) {
                 //console.log(blobMatch[2]);
                 //console.log("Name: " + Page.name);
-            Page.text = Page.text + blobString.substr(0, index) + '<p><a href="' + 'https://encounter.plus/page/' + slugify(blobMatch[2].replace(/<[^>]*>?/gm, '')) + '">' + blobMatch[2].replace(/<[^>]*>?/gm, '') + '</a></p>'
+            Page.text = Page.text + blobString.substr(0, index)
             if (blobMatch[2].match(roomPattern)) {
+                Page.text = Page.text + '<p><a href="' + 'https://encounter.plus/page/' + slugify(blobMatch[2].replace(/<[^>]*>?/gm, '')) + '">' + blobMatch[2].replace(/<[^>]*>?/gm, '') + '</a></p>'
                 console.log("Title 1: " + Title);
                 Page.name = Title;
                 console.log("Original Name: " + parentTitle + " Name: " + Page.name + " " + Page.text);
@@ -545,6 +546,7 @@ function splitPages(blobString, Title, parentKey) {
             }
             else {
                 if (blobMatch[1] == 'h3') {
+                    Page.text = Page.text + '<p><a href="' + 'https://encounter.plus/page/' + slugify(blobMatch[2].replace(/<[^>]*>?/gm, '')) + '">' + blobMatch[2].replace(/<[^>]*>?/gm, '') + '</a></p>'
                     console.log("Title 1: " + Title);
                     Page.name = Title;
                     Page.subheading = true;
