@@ -89,274 +89,24 @@ function onReaderLoad(event){
     module.value += ' <slug>' + encodeXML(slugify(moduleName))+'</slug>'+"\n";
   module.value += ' <category>adventure</category>'+"\n";
   module.value += ' <author>Roll 20</author>'+"\n";
-  
-  //Maps
-  for (var m = 0; m < json.maps.length; m++) {
-    var hasWalls=false;
-    if (json.maps[m].paths.length>0){
-      hasWalls = true;
-    }
-    if (hideMapsWithoutWalls && !hasWalls){
-      continue;
-    }
-    mapName = json.maps[m].attributes.name;
     
-    var mapOffsetX=0.0;
-    var mapOffsetY=0.0;
-
-    //Map layer meta
-    mapWidth =0.0;
-    var mapG=-0;
-    var mapClass='';
-    for (var g=0;g<json.maps[m].graphics.length;g++){
-      if (json.maps[m].graphics[g].layer=='map'){
-        var tempWidth = json.maps[m].graphics[g].width;
-        if (tempWidth>mapWidth){ //May be multiple map layers with thumbnails, take the largest
-          mapWidth = json.maps[m].graphics[g].width;
-          mapHeight = json.maps[m].graphics[g].height;
-          mapImageSrc = json.maps[m].graphics[g].imgsrc.replace(/med.|thumb./,'original.');
-          mapOffsetX = (json.maps[m].graphics[g].width/2.0)-json.maps[m].graphics[g].left;
-          mapOffsetY = (json.maps[m].graphics[g].height/2.0)-json.maps[m].graphics[g].top;
-          mapG = g;
-          if (json.maps[m].graphics[g].rotation=='180'){
-            mapClass+=' rotate180';
-          }
-        } 
-      } 
-    }
-    
-    console.log('--------------------------');
-    console.log('Map [m:'+m+',g:'+mapG+'] - ' + mapName);
-    
-    /*if (mapOffsetX!=0 || mapOffsetY!=0){
-      console.log('%cOffset '+ mapOffsetX + ' x '+mapOffsetY,'background:#ff06');
-    }*/
-          
-    if (mapWidth>maxDisplayWidth){
-      sfd=maxDisplayWidth/mapWidth;
-    } else {
-      sfd=1.0;
-    }
-    
-    if ((mapWidth>=mapHeight) && mapWidth>maxZipWidth){
-      sfz=maxZipWidth/mapWidth;
-    } else if ((mapHeight>mapWidth) && mapHeight>maxZipHeight) {
-      sfz=maxZipHeight/mapHeight;
-    } else {
-      sfz=1.0;
-    }
-    
-    outDiv.innerHTML+='<div class="mapWrapper"><h4>'+mapName+'</h4><div id="map'+m+'" class="map"><img id="bgmap'+m+'" style="max-width:'+Math.round(mapWidth)+'px;max-height:'+Math.round(mapHeight)+'px;" class="background'+mapClass+'" alt="'+mapName+'" crossorigin="anonymous" src="'+mapImageSrc+'" width="'+Math.round(mapWidth*sfd)+'px" height="'+Math.round(mapHeight*sfd)+'px"/></div></div>';
-    var mapDiv = document.getElementById('map'+m);      
-
-    var moduleText = ' <map>'+"\n";
-    moduleText += '  <name>'+encodeXML(mapName)+'</name>'+"\n";
-    
-    var feetPerGrid = json.maps[m].attributes.scale_number;
-    var gridSize = (1.0/feetPerGrid)*350.0
-    
-    moduleText += '  <gridSize>'+Math.round(gridSize)+'</gridSize>'+"\n";
-    if (sfz==1.0){
-      moduleText += '  <image>'+encodeXML(mapName)+'.'+getExtn(mapImageSrc)+'</image>'+"\n";
-    } else {
-      moduleText += '  <image>'+encodeXML(mapName)+'.png</image>'+"\n";
-    }
-    if (hasWalls){
-      moduleText += '  <canvas>'+encodeXML(mapName)+'.svg</canvas>'+"\n";
-      moduleText += '  <lineOfSight>YES</lineOfSight>'+"\n";
-    }
-    moduleText += '  <gridVisible>'+(json.maps[m].attributes.showgrid?'YES':'NO')+'</gridVisible>'+"\n";
-    moduleText += '  <gridOffsetX>'+Math.round(mapOffsetX)+'</gridOffsetX>'+"\n";
-    moduleText += '  <gridOffsetY>'+Math.round(mapOffsetY)+'</gridOffsetY>'+"\n";
-    
-    //Graphic Objects
-    if (!debugSkipTiles){
-      for (var g=0;g<json.maps[m].graphics.length;g++){
-        var layer = json.maps[m].graphics[g].layer;
-        if (layer=='map' && g!=mapG){
-          layer='objects';
-        } 
-        if (layer=='objects' || layer=='gmlayer' || layer=='walls'){
-          var left = json.maps[m].graphics[g].left+mapOffsetX;
-          var top = json.maps[m].graphics[g].top+mapOffsetY; 
-          var width = json.maps[m].graphics[g].width;
-          var height = json.maps[m].graphics[g].height;
-          var title = json.maps[m].graphics[g].name;
-          var id = 'graphic_m'+m+'_'+json.maps[m].graphics[g].layer+'_g'+g;
-          var isCharacter = json.maps[m].graphics[g].represents!='';
-          var tileSrc = json.maps[m].graphics[g].imgsrc.replace(/med.|thumb./,'original.'); 
-          
-          var isLight=false;
-          if (json.maps[m].graphics[g].light_otherplayers==true && !isCharacter){
-            isLight=true;
-          }
-          
-          if (json.maps[m].graphics[g].layer=='walls' && hasLight){
-            isLight = true;
-            tileSrc = 'img/Trans1x1.png';
-          }
-          
-          if (!isLight && (json.maps[m].graphics[g].light_otherplayers==true)){
-            console.log('%cLight? :'+title +' - '+ id,'background:#ff06');
-          }
-          
-          if (hideCharacterObjects && isCharacter){
-            //Probably a character/monster. Ignore.            
-          } else {
-            if (title==''){
-              title = id;
-            }
-            var hasLight=false;
-            
-            if (json.maps[m].graphics[g].light_radius!=''){
-              hasLight=true;
-            }
-            
-            var cssClass='tile';
-            if (hasLight){
-              cssClass += ' light';
-            }
-            if (layer=='objects' || isLight ){
-              cssClass += ' layer-objects';
-            } else if (layer=='gmlayer'){
-              cssClass += ' layer-dm';
-            } else {
-              cssClass += ' layer-misc';           
-            }
-            
-            var style = 'position:absolute;left:'+(left-json.maps[m].graphics[g].width/2)*sfd+'px;top:'+(top-json.maps[m].graphics[g].height/2)*sfd+'px;width:'+width*sfd+'px;height:'+height*sfd+'px;';
-            mapDiv.innerHTML += '<img style="'+style+'" id="'+id+'" class="'+cssClass+'" title="'+title+'" crossorigin="anonymous" src="'+tileSrc+'"/>';
-            //Tile
-            moduleText += '  <tile>'+"\n";
-            moduleText += '   <x>'+Math.round(left*sfz)+'</x>'+"\n";
-            moduleText += '   <y>'+Math.round(top*sfz)+'</y>'+"\n";
-            moduleText += '   <width>'+Math.round(width*sfz)+'</width>'+"\n";
-            moduleText += '   <height>'+Math.round(height*sfz)+'</height>'+"\n";
-            moduleText += '   <opacity>1.0</opacity>'+"\n";
-            
-            if (json.maps[m].graphics[g].layer=='objects' || isLight){
-              moduleText += '   <layer>object</layer>'+"\n";
-            }
-            if (json.maps[m].graphics[g].layer=='gmlayer'){
-              moduleText += '   <layer>dm</layer>'+"\n";
-            }
-            /*
-            if (isLight){
-              moduleText += '<layer>object</layer>';
-            } else {
-              moduleText += '<layer>dm</layer>';
-            }*/
-            
-            moduleText += '   <locked>YES</locked>'+"\n";
-            moduleText += '   <asset>';
-            moduleText += '<name>'+encodeXML(title)+'</name>';
-            moduleText += '<type>image</type>';
-            moduleText += '<resource>'+encodeXML(id)+'.'+getExtn(tileSrc)+'</resource>';
-            moduleText += '</asset>'+"\n";
-              if (hasLight) {
-                moduleText += '   <light>';
-                moduleText += '<enabled>YES</enabled>';
-                moduleText += '<radiusMin>'+Math.round(json.maps[m].graphics[g].light_dimradius)+'</radiusMin>';
-                moduleText += '<radiusMax>'+Math.round(json.maps[m].graphics[g].light_radius)+'</radiusMax>';
-                moduleText += '<alwaysVisible>NO</alwaysVisible>';
-                moduleText += '<color>#ffffff</color>';
-                moduleText += '<opacity>0.5</opacity>';
-                moduleText += '</light>'+"\n";
-            }
-            moduleText += '  </tile>'+"\n";
-          }
-        } else {
-          //console.log(g+' '+json.maps[m].graphics[g].layer);
-        }
-      }
-    }
-    
-    //Assume door colour is the least used line colour
-    var lineColours = {}
-    for (var p=0;p<json.maps[m].paths.length;p++){
-      var colour = json.maps[m].paths[p].stroke;
-      if (lineColours[colour]==null){
-        lineColours[colour]=1;
-      } else {
-        lineColours[colour]=lineColours[colour]+1;
-      }
-    }
-    
-    if (Object.keys(lineColours).length>1){
-      var lineCount=Number.MAX_SAFE_INTEGER; 
-      for (var colour in lineColours){
-        if (lineColours[colour]<lineCount){
-          doorColour=colour;
-          lineCount = lineColours[colour]; 
-        }
-      }
-      console.log('Auto door colour: '+doorColour+' - Line Count:'+lineColours[doorColour]);
-    }
-    
-    //Paths
-    if (hasWalls){
-      var svgXML='<svg id="svg'+m+'" xmlns="http://www.w3.org/2000/svg" version="1.0" width="'+mapWidth*sfd+'" height="'+mapHeight*sfd+'" viewBox="0 0 '+(mapWidth*sfz)+' '+(mapHeight*sfz)+'">';
-      for (var p=0;p<json.maps[m].paths.length;p++){
-        var pLeft = json.maps[m].paths[p].left;
-        var pTop = json.maps[m].paths[p].top;
-        var pWidth = json.maps[m].paths[p].width;
-        var pHeight = json.maps[m].paths[p].height; 
-        var pClass = json.maps[m].paths[p].layer;
-        if (pClass=='walls'){pClass='wall';}
-        var pStroke = json.maps[m].paths[p].stroke;
-        if (pStroke==doorColour){
-          pStroke='#00ffff'; //E+ Door Colour
-        } else {
-          pStroke='#ff7f00'; //E+ Orange Wall Colour
-        }
-        var pStrokeWidth = json.maps[m].paths[p].stroke_width;
-        
-        var jsonPath = JSON.parse(json.maps[m].paths[p].path);
-        var path = '';
-        for (var i=0;i<jsonPath.length;i++){
-          var letter = jsonPath[i][0];
-          if (letter=='M' || letter=='L'){ //Lines
-            path += letter;
-            path += ''+(jsonPath[i][1]+pLeft+mapOffsetX-pWidth/2)*sfz;
-            path += ','+(jsonPath[i][2]+pTop+mapOffsetY-pHeight/2)*sfz;
-          } else if (letter=='C'){ //Oval path
-            path += letter;
-            path += ''+(jsonPath[i][1]+pLeft+mapOffsetX-pWidth/2)*sfz;
-            path += ','+(jsonPath[i][2]+pTop+mapOffsetY-pHeight/2)*sfz;
-            path += ','+(jsonPath[i][3]+pLeft+mapOffsetX-pWidth/2)*sfz;
-            path += ','+(jsonPath[i][4]+pTop+mapOffsetY-pHeight/2)*sfz;
-            path += ','+(jsonPath[i][5]+pLeft+mapOffsetX-pWidth/2)*sfz;
-            path += ','+(jsonPath[i][6]+pTop+mapOffsetY-pHeight/2)*sfz;          
-          } else if (letter=='Q'){ //Freehand path (UNTESTED!)
-            path += letter;
-            path += ''+(jsonPath[i][1]+pLeft+mapOffsetX-pWidth/2)*sfz;
-            path += ','+(jsonPath[i][2]+pTop+mapOffsetY-pHeight/2)*sfz;
-            path += ','+(jsonPath[i][3]+pLeft+mapOffsetX-pWidth/2)*sfz;
-            path += ','+(jsonPath[i][4]+pTop+mapOffsetY-pHeight/2)*sfz;
-          } else {
-            console.log('%cUnknown SVG Letter! '+letter+' in paths['+p+'].path['+i+']','background:#ff06');
-          }
-        }
-        svgXML+='<path class="'+pClass+'" stroke="'+pStroke+'" stroke-opacity="1.0" stroke-width="'+pStrokeWidth+'" stroke-linejoin="round" stroke-linecap="round" fill="none" d="'+path+'" />';
-      }
-      svgXML+='</svg>';
-      mapDiv.innerHTML+=svgXML;
-    }
-    
-    moduleText += ' </map>'+"\n";
-    module.value+=moduleText;
-  }
-  
   //Pages
   //Create groups from journal
   var groups = {};
   moduleText ='';
-  
+      //Create maps group
+    var mapgroupUUID = createUUID();
+    moduleText += ' <group id="' + mapgroupUUID + '">' + "\n";
+moduleText += '  <name>' + 'Maps' + '</name>' + "\n";
+moduleText += '  <slug>' + encodeXML(slugify('Maps')) + '</slug>' + "\n";
+moduleText += ' </group>' + "\n";  
+
+
   for (var j=0;j<json.journal.length;j++){
-    for (var p=0;p<json.journal[j].path.length;p++){
+    for (var p=1;p<json.journal[j].path.length;p++){
       var name = json.journal[j].path[p];
       var parentKey='';
-      if (p==0){
+      if (p==1){
         parentKey='';        
       } else {
         parentKey=json.journal[j].path[p-1];
@@ -377,7 +127,264 @@ function onReaderLoad(event){
     moduleText += '  <slug>' + encodeXML(slugify(key))+'</slug>'+"\n";
     moduleText += ' </group>'+"\n";   
   }
-  
+
+    //Maps
+    for (var m = 0; m < json.maps.length; m++) {
+        var hasWalls = false;
+        if (json.maps[m].paths.length > 0) {
+            hasWalls = true;
+        }
+        if (hideMapsWithoutWalls && !hasWalls) {
+            continue;
+        }
+        mapName = json.maps[m].attributes.name;
+
+        var mapOffsetX = 0.0;
+        var mapOffsetY = 0.0;
+
+        //Map layer meta
+        mapWidth = 0.0;
+        var mapG = -0;
+        var mapClass = '';
+        for (var g = 0; g < json.maps[m].graphics.length; g++) {
+            if (json.maps[m].graphics[g].layer == 'map') {
+                var tempWidth = json.maps[m].graphics[g].width;
+                if (tempWidth > mapWidth) { //May be multiple map layers with thumbnails, take the largest
+                    mapWidth = json.maps[m].graphics[g].width;
+                    mapHeight = json.maps[m].graphics[g].height;
+                    mapImageSrc = json.maps[m].graphics[g].imgsrc.replace(/med.|thumb./, 'original.');
+                    mapOffsetX = (json.maps[m].graphics[g].width / 2.0) - json.maps[m].graphics[g].left;
+                    mapOffsetY = (json.maps[m].graphics[g].height / 2.0) - json.maps[m].graphics[g].top;
+                    mapG = g;
+                    if (json.maps[m].graphics[g].rotation == '180') {
+                        mapClass += ' rotate180';
+                    }
+                }
+            }
+        }
+
+        console.log('--------------------------');
+        console.log('Map [m:' + m + ',g:' + mapG + '] - ' + mapName);
+
+        /*if (mapOffsetX!=0 || mapOffsetY!=0){
+          console.log('%cOffset '+ mapOffsetX + ' x '+mapOffsetY,'background:#ff06');
+        }*/
+
+        if (mapWidth > maxDisplayWidth) {
+            sfd = maxDisplayWidth / mapWidth;
+        } else {
+            sfd = 1.0;
+        }
+
+        if ((mapWidth >= mapHeight) && mapWidth > maxZipWidth) {
+            sfz = maxZipWidth / mapWidth;
+        } else if ((mapHeight > mapWidth) && mapHeight > maxZipHeight) {
+            sfz = maxZipHeight / mapHeight;
+        } else {
+            sfz = 1.0;
+        }
+
+        outDiv.innerHTML += '<div class="mapWrapper"><h4>' + mapName + '</h4><div id="map' + m + '" class="map"><img id="bgmap' + m + '" style="max-width:' + Math.round(mapWidth) + 'px;max-height:' + Math.round(mapHeight) + 'px;" class="background' + mapClass + '" alt="' + mapName + '" crossorigin="anonymous" src="' + mapImageSrc + '" width="' + Math.round(mapWidth * sfd) + 'px" height="' + Math.round(mapHeight * sfd) + 'px"/></div></div>';
+        var mapDiv = document.getElementById('map' + m);
+
+        moduleText += ' <map parent="' + mapgroupUUID + '">' + "\n";
+        moduleText += '  <name>' + encodeXML(mapName) + '</name>' + "\n";
+
+        var feetPerGrid = json.maps[m].attributes.scale_number;
+        var gridSize = (1.0 / feetPerGrid) * 350.0
+
+        moduleText += '  <gridSize>' + Math.round(gridSize) + '</gridSize>' + "\n";
+        if (sfz == 1.0) {
+            moduleText += '  <image>' + encodeXML(mapName) + '.' + getExtn(mapImageSrc) + '</image>' + "\n";
+        } else {
+            moduleText += '  <image>' + encodeXML(mapName) + '.png</image>' + "\n";
+        }
+        if (hasWalls) {
+            moduleText += '  <canvas>' + encodeXML(mapName) + '.svg</canvas>' + "\n";
+            moduleText += '  <lineOfSight>YES</lineOfSight>' + "\n";
+        }
+        moduleText += '  <gridVisible>' + (json.maps[m].attributes.showgrid ? 'YES' : 'NO') + '</gridVisible>' + "\n";
+        moduleText += '  <gridOffsetX>' + Math.round(mapOffsetX) + '</gridOffsetX>' + "\n";
+        moduleText += '  <gridOffsetY>' + Math.round(mapOffsetY) + '</gridOffsetY>' + "\n";
+
+        //Graphic Objects
+        if (!debugSkipTiles) {
+            for (var g = 0; g < json.maps[m].graphics.length; g++) {
+                var layer = json.maps[m].graphics[g].layer;
+                if (layer == 'map' && g != mapG) {
+                    layer = 'objects';
+                }
+                if (layer == 'objects' || layer == 'gmlayer' || layer == 'walls') {
+                    var left = json.maps[m].graphics[g].left + mapOffsetX;
+                    var top = json.maps[m].graphics[g].top + mapOffsetY;
+                    var width = json.maps[m].graphics[g].width;
+                    var height = json.maps[m].graphics[g].height;
+                    var title = json.maps[m].graphics[g].name;
+                    var id = 'graphic_m' + m + '_' + json.maps[m].graphics[g].layer + '_g' + g;
+                    var isCharacter = json.maps[m].graphics[g].represents != '';
+                    var tileSrc = json.maps[m].graphics[g].imgsrc.replace(/med.|thumb./, 'original.');
+
+                    var isLight = false;
+                    if (json.maps[m].graphics[g].light_otherplayers == true && !isCharacter) {
+                        isLight = true;
+                    }
+
+                    if (json.maps[m].graphics[g].layer == 'walls' && hasLight) {
+                        isLight = true;
+                        tileSrc = 'img/Trans1x1.png';
+                    }
+
+                    if (!isLight && (json.maps[m].graphics[g].light_otherplayers == true)) {
+                        console.log('%cLight? :' + title + ' - ' + id, 'background:#ff06');
+                    }
+
+                    if (hideCharacterObjects && isCharacter) {
+                        //Probably a character/monster. Ignore.            
+                    } else {
+                        if (title == '') {
+                            title = id;
+                        }
+                        var hasLight = false;
+
+                        if (json.maps[m].graphics[g].light_radius != '') {
+                            hasLight = true;
+                        }
+
+                        var cssClass = 'tile';
+                        if (hasLight) {
+                            cssClass += ' light';
+                        }
+                        if (layer == 'objects' || isLight) {
+                            cssClass += ' layer-objects';
+                        } else if (layer == 'gmlayer') {
+                            cssClass += ' layer-dm';
+                        } else {
+                            cssClass += ' layer-misc';
+                        }
+
+                        var style = 'position:absolute;left:' + (left - json.maps[m].graphics[g].width / 2) * sfd + 'px;top:' + (top - json.maps[m].graphics[g].height / 2) * sfd + 'px;width:' + width * sfd + 'px;height:' + height * sfd + 'px;';
+                        mapDiv.innerHTML += '<img style="' + style + '" id="' + id + '" class="' + cssClass + '" title="' + title + '" crossorigin="anonymous" src="' + tileSrc + '"/>';
+                        //Tile
+                        moduleText += '  <tile>' + "\n";
+                        moduleText += '   <x>' + Math.round(left * sfz) + '</x>' + "\n";
+                        moduleText += '   <y>' + Math.round(top * sfz) + '</y>' + "\n";
+                        moduleText += '   <width>' + Math.round(width * sfz) + '</width>' + "\n";
+                        moduleText += '   <height>' + Math.round(height * sfz) + '</height>' + "\n";
+                        moduleText += '   <opacity>1.0</opacity>' + "\n";
+
+                        if (json.maps[m].graphics[g].layer == 'objects' || isLight) {
+                            moduleText += '   <layer>object</layer>' + "\n";
+                        }
+                        if (json.maps[m].graphics[g].layer == 'gmlayer') {
+                            moduleText += '   <layer>dm</layer>' + "\n";
+                        }
+                        /*
+                        if (isLight){
+                          moduleText += '<layer>object</layer>';
+                        } else {
+                          moduleText += '<layer>dm</layer>';
+                        }*/
+
+                        moduleText += '   <locked>YES</locked>' + "\n";
+                        moduleText += '   <asset>';
+                        moduleText += '<name>' + encodeXML(title) + '</name>';
+                        moduleText += '<type>image</type>';
+                        moduleText += '<resource>' + encodeXML(id) + '.' + getExtn(tileSrc) + '</resource>';
+                        moduleText += '</asset>' + "\n";
+                        if (hasLight) {
+                            moduleText += '   <light>';
+                            moduleText += '<enabled>YES</enabled>';
+                            moduleText += '<radiusMin>' + Math.round(json.maps[m].graphics[g].light_dimradius) + '</radiusMin>';
+                            moduleText += '<radiusMax>' + Math.round(json.maps[m].graphics[g].light_radius) + '</radiusMax>';
+                            moduleText += '<alwaysVisible>NO</alwaysVisible>';
+                            moduleText += '<color>#ffffff</color>';
+                            moduleText += '<opacity>0.5</opacity>';
+                            moduleText += '</light>' + "\n";
+                        }
+                        moduleText += '  </tile>' + "\n";
+                    }
+                } else {
+                    //console.log(g+' '+json.maps[m].graphics[g].layer);
+                }
+            }
+        }
+
+        //Assume door colour is the least used line colour
+        var lineColours = {}
+        for (var p = 0; p < json.maps[m].paths.length; p++) {
+            var colour = json.maps[m].paths[p].stroke;
+            if (lineColours[colour] == null) {
+                lineColours[colour] = 1;
+            } else {
+                lineColours[colour] = lineColours[colour] + 1;
+            }
+        }
+
+        if (Object.keys(lineColours).length > 1) {
+            var lineCount = Number.MAX_SAFE_INTEGER;
+            for (var colour in lineColours) {
+                if (lineColours[colour] < lineCount) {
+                    doorColour = colour;
+                    lineCount = lineColours[colour];
+                }
+            }
+            console.log('Auto door colour: ' + doorColour + ' - Line Count:' + lineColours[doorColour]);
+        }
+
+        //Paths
+        if (hasWalls) {
+            var svgXML = '<svg id="svg' + m + '" xmlns="http://www.w3.org/2000/svg" version="1.0" width="' + mapWidth * sfd + '" height="' + mapHeight * sfd + '" viewBox="0 0 ' + (mapWidth * sfz) + ' ' + (mapHeight * sfz) + '">';
+            for (var p = 0; p < json.maps[m].paths.length; p++) {
+                var pLeft = json.maps[m].paths[p].left;
+                var pTop = json.maps[m].paths[p].top;
+                var pWidth = json.maps[m].paths[p].width;
+                var pHeight = json.maps[m].paths[p].height;
+                var pClass = json.maps[m].paths[p].layer;
+                if (pClass == 'walls') { pClass = 'wall'; }
+                var pStroke = json.maps[m].paths[p].stroke;
+                if (pStroke == doorColour) {
+                    pStroke = '#00ffff'; //E+ Door Colour
+                } else {
+                    pStroke = '#ff7f00'; //E+ Orange Wall Colour
+                }
+                var pStrokeWidth = json.maps[m].paths[p].stroke_width;
+
+                var jsonPath = JSON.parse(json.maps[m].paths[p].path);
+                var path = '';
+                for (var i = 0; i < jsonPath.length; i++) {
+                    var letter = jsonPath[i][0];
+                    if (letter == 'M' || letter == 'L') { //Lines
+                        path += letter;
+                        path += '' + (jsonPath[i][1] + pLeft + mapOffsetX - pWidth / 2) * sfz;
+                        path += ',' + (jsonPath[i][2] + pTop + mapOffsetY - pHeight / 2) * sfz;
+                    } else if (letter == 'C') { //Oval path
+                        path += letter;
+                        path += '' + (jsonPath[i][1] + pLeft + mapOffsetX - pWidth / 2) * sfz;
+                        path += ',' + (jsonPath[i][2] + pTop + mapOffsetY - pHeight / 2) * sfz;
+                        path += ',' + (jsonPath[i][3] + pLeft + mapOffsetX - pWidth / 2) * sfz;
+                        path += ',' + (jsonPath[i][4] + pTop + mapOffsetY - pHeight / 2) * sfz;
+                        path += ',' + (jsonPath[i][5] + pLeft + mapOffsetX - pWidth / 2) * sfz;
+                        path += ',' + (jsonPath[i][6] + pTop + mapOffsetY - pHeight / 2) * sfz;
+                    } else if (letter == 'Q') { //Freehand path (UNTESTED!)
+                        path += letter;
+                        path += '' + (jsonPath[i][1] + pLeft + mapOffsetX - pWidth / 2) * sfz;
+                        path += ',' + (jsonPath[i][2] + pTop + mapOffsetY - pHeight / 2) * sfz;
+                        path += ',' + (jsonPath[i][3] + pLeft + mapOffsetX - pWidth / 2) * sfz;
+                        path += ',' + (jsonPath[i][4] + pTop + mapOffsetY - pHeight / 2) * sfz;
+                    } else {
+                        console.log('%cUnknown SVG Letter! ' + letter + ' in paths[' + p + '].path[' + i + ']', 'background:#ff06');
+                    }
+                }
+                svgXML += '<path class="' + pClass + '" stroke="' + pStroke + '" stroke-opacity="1.0" stroke-width="' + pStrokeWidth + '" stroke-linejoin="round" stroke-linecap="round" fill="none" d="' + path + '" />';
+            }
+            svgXML += '</svg>';
+            mapDiv.innerHTML += svgXML;
+        }
+
+        moduleText += ' </map>' + "\n";
+    }
+
+
   //Handouts
   for (var h=0;h<json.handouts.length;h++){
     var pageId = json.handouts[h].attributes.id;
@@ -533,6 +540,9 @@ function splitPages(blobString, Title, parentKey) {
             Page.text = Page.text + blobString.substr(0, index)
             if (blobMatch[2].match(roomPattern)) {
                 Page.text = Page.text + '<p><a href="' + 'https://encounter.plus/page/' + slugify(blobMatch[2].replace(/<[^>]*>?/gm, '')) + '">' + blobMatch[2].replace(/<[^>]*>?/gm, '') + '</a></p>'
+                if (Pages.length > 0) {
+                    Pages[0].text = Pages[0].text + '<p><a href="' + 'https://encounter.plus/page/' + slugify(blobMatch[2].replace(/<[^>]*>?/gm, '')) + '">' + blobMatch[2].replace(/<[^>]*>?/gm, '') + '</a></p>'
+                }
                 console.log("Title 1: " + Title);
                 Page.name = Title;
                 console.log("Original Name: " + parentTitle + " Name: " + Page.name + " " + Page.text);
@@ -547,6 +557,9 @@ function splitPages(blobString, Title, parentKey) {
             else {
                 if (blobMatch[1] == 'h3') {
                     Page.text = Page.text + '<p><a href="' + 'https://encounter.plus/page/' + slugify(blobMatch[2].replace(/<[^>]*>?/gm, '')) + '">' + blobMatch[2].replace(/<[^>]*>?/gm, '') + '</a></p>'
+                    if (Pages.length > 0) {
+                        Pages[0].text = Pages[0].text + '<p><a href="' + 'https://encounter.plus/page/' + slugify(blobMatch[2].replace(/<[^>]*>?/gm, '')) + '">' + blobMatch[2].replace(/<[^>]*>?/gm, '') + '</a></p>'
+                    }
                     console.log("Title 1: " + Title);
                     Page.name = Title;
                     Page.subheading = true;

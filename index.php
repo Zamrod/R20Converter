@@ -86,7 +86,7 @@
 <body>
   <p>Select Roll 20 module json: <input id="JSONFile" type="file" class="btn-outline" name="Roll 20 JSON File"/>
     <br/>Hide character images:<input type="checkbox" id="hideCharacterObjects" checked="checked"/>
-    <br/>Hide maps without walls:<input type="checkbox" id="hideMapsWithoutWalls" checked="checked"/>
+    <br/>Hide maps without walls:<input type="checkbox" id="hideMapsWithoutWalls"/>
     <br/>Key: <span class="key"><span class="wall">Wall</span><span class="door">Door</span><span class="light">Light source</span><span class="layer-dm">DM Layer Objects</span><span class="tile bad">Missing Image</span></span>
   </p>
   <p><input id="downloadButton" style="display:none;" type="button" value="Download Module" onClick="downloadModule();"/></p>
