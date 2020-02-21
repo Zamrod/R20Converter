@@ -420,6 +420,8 @@ moduleText += ' </group>' + "\n";
           moduleText += '  <name>' + encodeXML(blobPages[p].name) + '</name>' + "\n";
           console.log('Page Name:' + blobPages[p].name);
           moduleText += '  <slug>' + encodeXML(slugify(blobPages[p].name)) + '</slug>' + "\n";
+          var matchPattern = /(?:https:\/\/s3\.amazonaws\.com\/)(?:.+?)(med|thumb)(?:\.jpg|\.png)/gm; 
+          blobPages[p].text = blobPages[p].text.replace(matchPattern, 'original');
           moduleText += '  <content sourceId="h' + h + '">' + encodeXML(blobPages[p].text) + '</content>' + "\n";
           moduleText += ' </page>' + "\n";
       }
@@ -453,7 +455,9 @@ moduleText += ' </group>' + "\n";
     
     moduleText += ' <page parent="'+groups[parentKey].id+'">'+"\n"; 
     moduleText += '  <name>'+encodeXML(charName)+'</name>'+"\n";
-    moduleText += '  <slug>' + encodeXML(slugify(charName))+'</slug>'+"\n";
+      moduleText += '  <slug>' + encodeXML(slugify(charName)) + '</slug>' + "\n";
+      var matchPattern = /(?:https:\/\/s3\.amazonaws\.com\/)(?:.+?)(med|thumb)(?:\.jpg|\.png)/gm; 
+      blobBio = blobBio.replace(matchPattern, 'original');
     moduleText += '  <content sourceId="c'+c+'">'+encodeXML(blobBio)+'</content>'+"\n";
     moduleText += ' </page>'+"\n";
   }
