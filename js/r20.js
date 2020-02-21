@@ -191,7 +191,7 @@ moduleText += ' </group>' + "\n";
         moduleText += '  <name>' + encodeXML(mapName) + '</name>' + "\n";
 
         var feetPerGrid = json.maps[m].attributes.scale_number;
-        var gridSize = (1.0 / feetPerGrid) * 350.0
+        var gridSize = (1.0 / feetPerGrid) * 350.0 * sfz
 
         moduleText += '  <gridSize>' + Math.round(gridSize) + '</gridSize>' + "\n";
         if (sfz == 1.0) {
@@ -699,7 +699,6 @@ function downloadModule(){
       console.log('Resizing: '+mapImage.alt);
       //Need to update module to force png extension.
       module.value = module.value.replace('  <image>'+mapName+'.'+mapImageExtension+'</image>'+"\n",'  <image>'+mapName+'.png</image>'+"\n");
-
       var mapData = getData(mapImage,mapWidth*sfz,mapHeight*sfz,rotate180Needed?Math.PI:0);
       zip.file(mapName+'.png', mapData, {base64: true});
     } else {
