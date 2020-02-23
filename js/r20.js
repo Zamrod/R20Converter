@@ -421,7 +421,7 @@ moduleText += ' </group>' + "\n";
           console.log('Page Name:' + blobPages[p].name);
           moduleText += '  <slug>' + encodeXML(slugify(blobPages[p].name)) + '</slug>' + "\n";
           var matchPattern = /(?:https:\/\/s3\.amazonaws\.com\/)(?:.+?)(med|thumb)(?:\.jpg|\.png)/gm; 
-          blobPages[p].text = blobPages[p].text.replace(matchPattern, 'original');
+          blobPages[p].text = blobPages[p].text.replace(matchPattern, '$1$2original$4');
           moduleText += '  <content sourceId="h' + h + '">' + encodeXML(blobPages[p].text) + '</content>' + "\n";
           moduleText += ' </page>' + "\n";
       }
@@ -457,7 +457,7 @@ moduleText += ' </group>' + "\n";
     moduleText += '  <name>'+encodeXML(charName)+'</name>'+"\n";
       moduleText += '  <slug>' + encodeXML(slugify(charName)) + '</slug>' + "\n";
       var matchPattern = /(?:https:\/\/s3\.amazonaws\.com\/)(?:.+?)(med|thumb)(?:\.jpg|\.png)/gm; 
-      blobBio = blobBio.replace(matchPattern, 'original');
+      blobBio = blobBio.replace(matchPattern, '$1$2original$4');
     moduleText += '  <content sourceId="c'+c+'">'+encodeXML(blobBio)+'</content>'+"\n";
     moduleText += ' </page>'+"\n";
   }
